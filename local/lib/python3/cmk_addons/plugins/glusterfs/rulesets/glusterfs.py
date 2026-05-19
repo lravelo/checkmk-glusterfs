@@ -53,12 +53,13 @@ def _parameter_form():
 
 
 # ---------------------------------------------------------------------------
-# Ruleset Registration (IMPORTANT for 2.3)
+# Ruleset Registration
 # ---------------------------------------------------------------------------
 
 rule_spec_glusterfs = CheckParameters(
     name="glusterfs",
     title=Title("GlusterFS"),
-    condition=HostCondition(),   # ✅ REQUIRED in 2.3
+    topic="storage",              # ✅ STRING instead of Topic enum
+    condition=HostCondition(),   # ✅ REQUIRED
     parameter_form=_parameter_form,
 )
