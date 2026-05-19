@@ -1,5 +1,5 @@
 {'author': 'Lazaro Ravelo <lazaro.ravelo@me.com',
- 'description': 'GlusterFS monitoring plugin for Checkmk 2.4',
+ 'description': 'GlusterFS monitoring plugin for Checkmk 2.4 based on inettgmbh/checkmk-glusterfs ',
  'name': 'glusterfs',
  'title': 'GlusterFS Monitoring',
  'version': '1.0.0',
