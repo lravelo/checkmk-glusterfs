@@ -16,22 +16,6 @@ from typing import Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 def parse_glusterfs(string_table: List[List[str]]) -> Dict[str, List[str]]:
-    """
-    Parses the agent output into structured sections.
-
-    Expected format:
-        <<<glusterfs:sep(0)>>>
-        [peers]
-        ...
-        [volume]
-        ...
-        [status]
-        ...
-        [heal]
-        ...
-        [df]
-        ...
-    """
     section: Dict[str, List[str]] = {}
     current_section: Optional[str] = None
 
@@ -41,7 +25,6 @@ def parse_glusterfs(string_table: List[List[str]]) -> Dict[str, List[str]]:
 
         line = row[0].strip()
 
-        # Detect section headers like [peers]
         if line.startswith("[") and line.endswith("]"):
             current_section = line.strip("[]")
             section[current_section] = []
@@ -68,16 +51,8 @@ agent_section_glusterfs = AgentSection(
 # ---------------------------------------------------------------------------
 
 def discover_glusterfs(section: Dict[str, List[str]]):
-    """
-    Discover services:
-    - One cluster service (no item)
-    - One service per volume
-    """
-
-    # Always create cluster-level service
     yield Service()
 
-    # Discover volumes
     volumes = set()
 
     for line in section.get("volume", []):
@@ -93,13 +68,13 @@ def discover_glusterfs(section: Dict[str, List[str]]):
 # Check Logic
 # ---------------------------------------------------------------------------
 
-def check_glusterfs(section: Dict[str, List[str]], item: Optional[str]):
-    """
-    Evaluate cluster OR volume.
-    """
+def check_glusterfs(params, section: Dict[str, List[str]], item: Optional[str]):
+    warn_bricks = params.get("brick_down_warn", 1)
+    crit_bricks = params.get("brick_down_crit", 1)
+    heal_warn_enabled = params.get("warn_on_heal", True)
 
     # ------------------------
-    # CLUSTER CHECK (no item)
+    # CLUSTER CHECK
     # ------------------------
     if item is None:
         peer_lines = section.get("peers", [])
@@ -108,23 +83,17 @@ def check_glusterfs(section: Dict[str, List[str]], item: Optional[str]):
             yield Result(state=State.UNKNOWN, summary="No peer data available")
             return
 
-        disconnected = False
-
         for line in peer_lines:
             if "Disconnected" in line:
-                disconnected = True
-                break
+                yield Result(state=State.CRIT, summary="Peer disconnected")
+                return
 
-        if disconnected:
-            yield Result(state=State.CRIT, summary="One or more peers disconnected")
-        else:
-            yield Result(state=State.OK, summary="All peers connected")
-
+        yield Result(state=State.OK, summary="All peers connected")
         return
 
 
     # ------------------------
-    # VOLUME CHECK (item-based)
+    # VOLUME CHECK
     # ------------------------
     status_lines = section.get("status", [])
     heal_lines = section.get("heal", [])
@@ -133,7 +102,6 @@ def check_glusterfs(section: Dict[str, List[str]], item: Optional[str]):
         yield Result(state=State.UNKNOWN, summary="No volume status data")
         return
 
-
     down_bricks = 0
     total_bricks = 0
 
@@ -141,7 +109,6 @@ def check_glusterfs(section: Dict[str, List[str]], item: Optional[str]):
         if item not in line:
             continue
 
-        # Typical lines contain Y/N for brick status
         if "N" in line:
             down_bricks += 1
 
@@ -149,24 +116,30 @@ def check_glusterfs(section: Dict[str, List[str]], item: Optional[str]):
             total_bricks += 1
 
 
-    # Heal detection (very basic)
+    # Heal detection
     healing = False
     for line in heal_lines:
-        if item in line and ("entries" in line or "pending" in line):
-            if any(x.isdigit() for x in line):
-                healing = True
-                break
+        if item in line and any(x.isdigit() for x in line):
+            healing = True
+            break
 
 
-    # Determine state
-    if down_bricks > 0:
+    # Threshold logic
+    if down_bricks >= crit_bricks:
         yield Result(
             state=State.CRIT,
-            summary=f"{down_bricks}/{total_bricks} bricks down",
+            summary=f"{down_bricks}/{total_bricks} bricks down (CRIT)",
         )
         return
 
-    if healing:
+    if down_bricks >= warn_bricks:
+        yield Result(
+            state=State.WARN,
+            summary=f"{down_bricks}/{total_bricks} bricks down (WARN)",
+        )
+        return
+
+    if healing and heal_warn_enabled:
         yield Result(
             state=State.WARN,
             summary="Self-heal in progress",
@@ -188,4 +161,9 @@ check_plugin_glusterfs = CheckPlugin(
     service_name="GlusterFS %s",
     discovery_function=discover_glusterfs,
     check_function=check_glusterfs,
+    check_default_parameters={
+        "brick_down_warn": 1,
+        "brick_down_crit": 1,
+        "warn_on_heal": True,
+    },
 )
