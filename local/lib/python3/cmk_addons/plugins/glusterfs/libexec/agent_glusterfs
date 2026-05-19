@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo '<<<glusterfs:sep(0)>>>' 
+
+# Cluster peer status
+echo '[peers]'
+gluster peer status
+
+# Volume info
+echo '[volume]'
+gluster volume info
+
+# Volume status (includes bricks)
+echo '[status]'
+gluster volume status
+
+# Heal info
+echo '[heal]'
+gluster volume heal all info
+
+# Disk usage
+echo '[df]'
+df -P | grep gluster

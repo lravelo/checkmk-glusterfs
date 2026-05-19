@@ -1,0 +1,97 @@
+title: GlusterFS cluster and volume monitoring
+
+agents: glusterfs
+
+catalog: storage
+
+license: GPL
+
+distribution: check_mk
+
+description:
+ This check monitors GlusterFS clusters and volumes.
+
+ It evaluates:
+  - Cluster peer connectivity
+  - Volume health
+  - Brick availability
+  - Self-heal activity
+
+ The check creates:
+  - One service for the GlusterFS cluster (peer status)
+  - One service per volume
+
+item:
+ The name of the GlusterFS volume.
+
+inventory:
+ A service is created for each detected volume based on the output
+ of the GlusterFS agent plugin.
+
+discovery:
+ The check automatically discovers:
+  - A cluster service (no item)
+  - Volume services (items based on "Volume Name")
+
+parameters:
+ brick_down_warn:
+  Number of bricks that need to be down before the service changes
+  to WARNING.
+
+ brick_down_crit:
+  Number of bricks that need to be down before the service changes
+  to CRITICAL.
+
+ warn_on_heal:
+  If enabled, the service will enter WARNING state when GlusterFS
+  self-heal activity is detected.
+
+levels:
+ The state is determined as follows:
+
+  OK:
+   All bricks are up and no heal activity is present.
+
+  WARNING:
+   - Number of down bricks >= brick_down_warn
+   - OR self-heal activity detected (if enabled)
+
+  CRITICAL:
+   - Number of down bricks >= brick_down_crit
+   - OR cluster peer is disconnected
+
+perfdata:
+ No performance data is currently generated.
+
+ To extend this check, metrics such as:
+  - Number of bricks
+  - Heal backlog
+  - Volume usage
+ can be added in future versions.
+
+notes:
+ The agent plugin must be installed on the monitored host
+ and executable by the Checkmk agent.
+
+ The plugin requires the "gluster" command-line tools
+ to be available on the system.
+
+ Ensure the Checkmk agent user has sufficient permissions
+ to execute:
+   - gluster peer status
+   - gluster volume info
+   - gluster volume status
+   - gluster volume heal
+
+example:
+ A healthy volume:
+   OK - Volume healthy
+
+ A degraded volume:
+   CRIT - 1/4 bricks down
+
+ A healing volume:
+   WARN - Self-heal in progress
+
+ A cluster issue:
+   CRIT - Peer disconnected

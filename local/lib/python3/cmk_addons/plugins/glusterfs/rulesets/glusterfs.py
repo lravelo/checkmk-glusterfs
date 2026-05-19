@@ -1,72 +1,67 @@
 #!/usr/bin/env python3
 
-from cmk.rulesets.v1 import Title, Help, Topic, ruleset_registry
+from cmk.rulesets.v1 import Title, Label
+from cmk.rulesets.v1.rule_specs import CheckParameters
 from cmk.rulesets.v1.form_specs import (
     Dictionary,
+    DictElement,
     Integer,
+    BooleanChoice,
+    DefaultValue,
 )
-from cmk.rulesets.v1.rule_specs import (
-    CheckParameters,
-)
 
 
-# ---------------------------
-# GlusterFS Volume Rules
-# ---------------------------
+# ---------------------------------------------------------------------------
+# Parameter Form
+# ---------------------------------------------------------------------------
 
-def _valuespec_glusterfs_volume():
+def _parameter_form():
     return Dictionary(
-        title=Title("GlusterFS volume thresholds"),
-        help_text=Help("Configure thresholds for GlusterFS volumes."),
+        title=Title("GlusterFS monitoring parameters"),
         elements={
-            "heal_warn": Integer(
-                title=Title("Warning at number of heal entries"),
-                default_value=10,
-            ),
-            "heal_crit": Integer(
-                title=Title("Critical at number of heal entries"),
-                default_value=15,
-            ),
-            "splitbrain_crit": Integer(
-                title=Title("Critical at split-brain entries"),
+
+            "brick_down_warn": DictElement(
+                parameter_form=Integer(
+                    title=Title("Warning if this many bricks are down"),
+                    help=(
+                        "Set the number of bricks that must be down before the "
+                        "service goes into WARNING state."
+                    ),
+                ),
+                required=False,
                 default_value=1,
+            ),
+
+            "brick_down_crit": DictElement(
+                parameter_form=Integer(
+                    title=Title("Critical if this many bricks are down"),
+                    help=(
+                        "Set the number of bricks that must be down before the "
+                        "service goes into CRITICAL state."
+                    ),
+                ),
+                required=False,
+                default_value=1,
+            ),
+
+            "warn_on_heal": DictElement(
+                parameter_form=BooleanChoice(
+                    title=Title("Warn if self-heal is in progress"),
+                    label=Label("Enable warning when heal operations are detected"),
+                ),
+                required=False,
+                default_value=True,
             ),
         },
     )
 
 
-ruleset_registry.register(
-    CheckParameters(
-        name="glusterfs_volume",
-        title=Title("GlusterFS volume"),
-        topic=Topic.APPLICATIONS,
-        parameter_form=_valuespec_glusterfs_volume,
-    )
-)
+# ---------------------------------------------------------------------------
+# Ruleset Registration
+# ---------------------------------------------------------------------------
 
-
-# ---------------------------
-# GlusterFS Peer Rules
-# ---------------------------
-
-def _valuespec_glusterfs_peer():
-    return Dictionary(
-        title=Title("GlusterFS peer state"),
-        help_text=Help("Define how peer states are evaluated."),
-        elements={
-            "peer_warn": Integer(
-                title=Title("Warning if peer not in cluster"),
-                default_value=1,
-            ),
-        },
-    )
-
-
-ruleset_registry.register(
-    CheckParameters(
-        name="glusterfs_peer",
-        title=Title("GlusterFS peer"),
-        topic=Topic.APPLICATIONS,
-        parameter_form=_valuespec_glusterfs_peer,
-    )
+rule_spec_glusterfs = CheckParameters(
+    name="glusterfs",
+    title=Title("GlusterFS"),
+    parameter_form=_parameter_form,
 )
