@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 from cmk.rulesets.v1 import Title, Label
-from cmk.rulesets.v1.rule_specs import CheckParameters
+from cmk.rulesets.v1.rule_specs import CheckParameters, HostCondition
 from cmk.rulesets.v1.form_specs import (
     Dictionary,
     DictElement,
     Integer,
     BooleanChoice,
-    DefaultValue,
 )
 
 
@@ -24,44 +23,42 @@ def _parameter_form():
                 parameter_form=Integer(
                     title=Title("Warning if this many bricks are down"),
                     help=(
-                        "Set the number of bricks that must be down before the "
-                        "service goes into WARNING state."
+                        "Number of bricks that must be down before the service "
+                        "changes to WARNING."
                     ),
                 ),
                 required=False,
-                default_value=1,
             ),
 
             "brick_down_crit": DictElement(
                 parameter_form=Integer(
                     title=Title("Critical if this many bricks are down"),
                     help=(
-                        "Set the number of bricks that must be down before the "
-                        "service goes into CRITICAL state."
+                        "Number of bricks that must be down before the service "
+                        "changes to CRITICAL."
                     ),
                 ),
                 required=False,
-                default_value=1,
             ),
 
             "warn_on_heal": DictElement(
                 parameter_form=BooleanChoice(
                     title=Title("Warn if self-heal is in progress"),
-                    label=Label("Enable warning when heal operations are detected"),
+                    label=Label("Enable warning when heal activity is detected"),
                 ),
                 required=False,
-                default_value=True,
             ),
         },
     )
 
 
 # ---------------------------------------------------------------------------
-# Ruleset Registration
+# Ruleset Registration (IMPORTANT for 2.3)
 # ---------------------------------------------------------------------------
 
 rule_spec_glusterfs = CheckParameters(
     name="glusterfs",
     title=Title("GlusterFS"),
+    condition=HostCondition(),   # ✅ REQUIRED in 2.3
     parameter_form=_parameter_form,
 )
