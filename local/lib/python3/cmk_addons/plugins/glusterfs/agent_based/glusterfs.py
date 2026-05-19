@@ -51,6 +51,7 @@ agent_section_glusterfs = AgentSection(
 # ---------------------------------------------------------------------------
 
 def discover_glusterfs(section: Dict[str, List[str]]):
+    # Cluster-level service
     yield Service()
 
     volumes = set()
@@ -65,10 +66,11 @@ def discover_glusterfs(section: Dict[str, List[str]]):
 
 
 # ---------------------------------------------------------------------------
-# Check Logic
+# Check Logic (IMPORTANT: correct argument order for 2.3)
 # ---------------------------------------------------------------------------
 
-def check_glusterfs(params, section: Dict[str, List[str]], item: Optional[str]):
+def check_glusterfs(item: Optional[str], params, section: Dict[str, List[str]]):
+
     warn_bricks = params.get("brick_down_warn", 1)
     crit_bricks = params.get("brick_down_crit", 1)
     heal_warn_enabled = params.get("warn_on_heal", True)
@@ -124,7 +126,10 @@ def check_glusterfs(params, section: Dict[str, List[str]], item: Optional[str]):
             break
 
 
-    # Threshold logic
+    # ------------------------
+    # Threshold evaluation
+    # ------------------------
+
     if down_bricks >= crit_bricks:
         yield Result(
             state=State.CRIT,
