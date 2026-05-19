@@ -16,16 +16,11 @@ from cmk.rulesets.v1.form_specs import (
 
 def _parameter_form():
     return Dictionary(
-        title=Title("GlusterFS monitoring parameters"),
         elements={
 
             "brick_down_warn": DictElement(
                 parameter_form=Integer(
                     title=Title("Warning if this many bricks are down"),
-                    help=(
-                        "Number of bricks that must be down before the service "
-                        "changes to WARNING."
-                    ),
                 ),
                 required=False,
             ),
@@ -33,10 +28,6 @@ def _parameter_form():
             "brick_down_crit": DictElement(
                 parameter_form=Integer(
                     title=Title("Critical if this many bricks are down"),
-                    help=(
-                        "Number of bricks that must be down before the service "
-                        "changes to CRITICAL."
-                    ),
                 ),
                 required=False,
             ),
@@ -59,7 +50,6 @@ def _parameter_form():
 rule_spec_glusterfs = CheckParameters(
     name="glusterfs",
     title=Title("GlusterFS"),
-    topic="storage",              # ✅ STRING instead of Topic enum
-    condition=HostCondition(),   # ✅ REQUIRED
+    condition=HostCondition(),
     parameter_form=_parameter_form,
 )
